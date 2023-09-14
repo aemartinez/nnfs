@@ -1,8 +1,8 @@
 from nnfs.datasets import spiral_data, vertical_data
 import matplotlib.pyplot as plt
 import numpy as np
-from NeuralNetwork import NeuralNetwork
-from Evaluation import LossCategoricalCrossentropy, Accuracy
+from NeuralNetwork import NeuralNetwork, LossCategoricalCrossentropy
+from Evaluation import Accuracy
 
 X, y = spiral_data(samples=100, classes=3)
 

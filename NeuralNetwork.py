@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-from Evaluation import LossCategoricalCrossentropy, Accuracy
+from Evaluation import Accuracy
 
 class Layer:
     def __init__(self, n_inputs, n_neurons):
@@ -13,14 +13,18 @@ class Layer:
 
     def backward(self, next_layer_dvalues):
         raise NotImplementedError
-        # self.dweights = next_layer_dvalues
-        # self.dbias = 
-        # self.dinputs =
+        self.dinputs = np.dot(next_layer_dvalues, self.weights.T)
+        self.dweights = np.dot(self.inputs.T, next_layer_dvalues)
+        self.dbiases = np.sum(next_layer_dvalues, axis = 0, keepdims = True)
 
 class ActivationReLU:
 
     def forward(self, inputs):
         self.output = np.maximum(0, inputs)
+
+    def backward(self, next_layer_dvalues):
+        self.dinputs = next_layer_dvalues.copy()
+        self.dinputs[self.output <= 0] = 0
 
 class ActivationSoftmax:
 
@@ -28,6 +32,15 @@ class ActivationSoftmax:
         exp_values = np.exp(inputs - np.max(inputs, axis = 1, keepdims = True))
         probabilities = exp_values / np.sum(exp_values, axis = 1, keepdims=True)
         self.output = probabilities
+
+    def backward(self, next_layer_dvalues):
+
+        self.dinputs = np.empty_like(next_layer_dvalues)
+
+        for index, (single_output, single_dvalues) in enumerate(zip(self.output, next_layer_dvalues)):
+            single_output = single_output.reshape(-1, 1)
+            jacobian_matrix = np.diagflat(single_output) - np.dot(single_output, single_output.T)
+            self.dinputs[index] = np.dot(jacobian_matrix, single_dvalues)
 
 class NeuralNetwork:
 
@@ -99,6 +112,50 @@ class NeuralNetwork:
             else:
                 self.layers = old_layers
 
-# class Trainer:
+class Loss:
+    
+    def calculate(self, output, y):
+        sample_losses = self.forward(output, y)
+        data_loss = np.mean(sample_losses)
+        return data_loss
 
-#     def train(self, )
+class LossCategoricalCrossentropy(Loss):
+    
+    def forward(self, y_pred, y_true):
+        number_samples = len(y_pred)
+        y_pred_clipped = np.clip(y_pred, 1e-7 , 1 - 1e-7 )
+
+        correct_confidences = []
+
+        #if y_true are categorical labels
+        if len(y_true.shape) == 1:
+            correct_confidences = y_pred_clipped[
+                range(number_samples), 
+                y_true 
+            ]
+        
+        #if y_true are hot-one encoded labels
+        if len(y_true.shape) == 2:
+            correct_confidences = np.sum(
+                y_true * y_pred_clipped,
+                axis = 1
+            )
+
+        #calculate losses
+        negative_log_likelihoods = -np.log(correct_confidences)
+        return negative_log_likelihoods
+
+    def backward(self, next_layer_dvalues, y_true):
+        
+        number_samples = len(next_layer_dvalues)
+        number_labels = len(next_layer_dvalues[0])
+        
+        # If labels are sparse, turn them into one-hot vector
+        if len (y_true.shape) == 1 :
+            y_true = np.eye(number_labels)[y_true]
+
+        # Calculate gradient
+        self.dinputs = - y_true / next_layer_dvalues
+        
+        # Normalize gradient
+        self.dinputs = self.dinputs / samples
