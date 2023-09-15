@@ -10,7 +10,7 @@ X, y = spiral_data(samples=100, classes=3)
 plt.scatter(X[:, 0 ], X[:, 1 ], c = y, s = 40 , cmap = 'brg' )
 plt.show()
 
-neural_network = NeuralNetwork(2, 1, 3, 3)
+neural_network = NeuralNetwork(2, 1, 64, 3)
 
 neural_network.forward(X)
 output = neural_network.output
@@ -27,7 +27,7 @@ predictions = np.argmax(output, axis = 1)
 plt.scatter(X[:, 0 ], X[:, 1 ], c = predictions, s = 40 , cmap = 'brg' )
 plt.show()
 
-neural_network.random_train(X, y, 1000)
+neural_network.train(X, y, 10000)
 neural_network.forward(X)
 output = neural_network.output
 
