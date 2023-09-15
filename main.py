@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from NeuralNetwork import NeuralNetwork, LossCategoricalCrossentropy
 from Evaluation import Accuracy
+from Optimizer import OptimizerSGD, Trainer
 
 X, y = spiral_data(samples=100, classes=3)
 
@@ -27,7 +28,9 @@ predictions = np.argmax(output, axis = 1)
 plt.scatter(X[:, 0 ], X[:, 1 ], c = predictions, s = 40 , cmap = 'brg' )
 plt.show()
 
-neural_network.train(X, y, 10000)
+optimizer = OptimizerSGD(decay=1e-3, momentum=0.9)
+trainer = Trainer(optimizer)
+trainer.train(neural_network, X, y, 10000)
 neural_network.forward(X)
 output = neural_network.output
 

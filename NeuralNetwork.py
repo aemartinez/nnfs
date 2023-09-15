@@ -6,6 +6,14 @@ class Layer:
     def __init__(self, n_inputs, n_neurons):
         self.weights = 0.01 * np.random.randn(n_inputs, n_neurons)
         self.biases = np.zeros((1, n_neurons))
+        self.weight_momentums = np.zeros_like(self.weights)
+        self.bias_momentums = np.zeros_like(self.biases)
+
+        self.inputs = None
+        self.output = None
+        self.dweights = None
+        self.dbiases = None
+        self.dinputs = None
 
     def forward(self, inputs):
         self.inputs = inputs
@@ -99,55 +107,6 @@ class NeuralNetwork:
             self.layers[i].backward(dvalues)
             dvalues = self.layers[i].dinputs
 
-    def train(self, data, true_labels, n_iterations):
-            
-            accuracy_function = Accuracy()
-            loss_function = LossCategoricalCrossentropy()
-            self.forward(data)
-            loss = loss_function.calculate(self.output, true_labels)
-            print("loss: ", loss)
-
-            optimizer = Optimizer_SGD(decay=1e-3)
-
-            loss_function.backward(self.output, true_labels)
-            dvalues = loss_function.dinputs
-            for i in range(n_iterations):
-                
-                self.backward(dvalues)
-                
-                optimizer.update_learning_rate()
-                optimizer.update_network_params(self)
-                optimizer.update_iteration()
-
-                self.forward(data)
-                loss = loss_function.calculate(self.output, true_labels)
-                accuracy = accuracy_function.calculate(self.output, true_labels)
-                if i % 100 == 0:
-                    print(f"iteration: {i}, learning rate: {optimizer.current_learning_rate}, loss: {loss}, accuracy: {accuracy}.")
-
-                loss_function.backward(self.output, true_labels)
-                dvalues = loss_function.dinputs
-                
-
-    def random_train(self, data, true_labels, n_iterations):
-
-        loss_function = LossCategoricalCrossentropy()
-        self.forward(data)
-        best_loss = loss_function.calculate(self.output, true_labels)
-
-        for i in range(n_iterations):
-
-            old_layers = copy.deepcopy(self.layers)
-            self.random_perturbation()
-
-            self.forward(data)
-            loss = loss_function.calculate(self.output, true_labels)
-            if loss < best_loss:
-                best_loss = loss
-                print("new loss: ", best_loss)
-            else:
-                self.layers = old_layers
-
 class Loss:
     
     def calculate(self, output, y):
@@ -195,28 +154,3 @@ class LossCategoricalCrossentropy(Loss):
         
         # Normalize gradient
         self.dinputs = self.dinputs / number_samples
-
-class Optimizer_SGD :
-    
-    # Initialize optimizer - set settings,
-    # learning rate of 1. is default for this optimizer
-    def __init__ (self, learning_rate: float = 1.0, decay: float = 0.0):
-        self.learning_rate = learning_rate
-        self.current_learning_rate = learning_rate
-        self.decay = decay
-        self.current_iteration = 0
-    
-    def update_learning_rate(self):
-        self.current_learning_rate = self.learning_rate * (1. / (1. + self.decay * self.current_iteration))
-
-    # Update parameters
-    def update_layer_params (self, layer: Layer ):
-        layer.weights += - self.learning_rate * layer.dweights
-        layer.biases += - self.learning_rate * layer.dbiases
-
-    def update_iteration(self):
-        self.current_iteration += 1
-
-    def update_network_params(self, network: NeuralNetwork):
-        for layer in network.layers:
-            self.update_layer_params(layer)
